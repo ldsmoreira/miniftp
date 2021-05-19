@@ -51,4 +51,5 @@ Mkfile.old
 dkms.conf
 
 # Test
-*pdf
+*.pdf
+*.log

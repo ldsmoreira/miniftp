@@ -1,4 +1,3 @@
-// Server side C/C++ program to demonstrate Socket programming
 #include <unistd.h>
 #include <stdio.h>
 #include <sys/socket.h>
@@ -130,17 +129,12 @@ int main(int argc, char const *argv[])
   {
     stream = malloc((body_size + 256) * sizeof(char)); // array to hold the result
     bzero(stream, 256 + 1024);
-    // printf("%ld\n", sizeof(body_size));
-    // body_size_ptr = (unsigned short int *)malloc(body_size * sizeof(char));
-    // *body_size_ptr = body_size;
+
     fread(buffer, body_size, 1, f);
 
     sprintf(header, "%d", body_size);
     memcpy(stream, header, 256);
     memcpy(stream + 256, buffer, body_size);
-
-    // memcpy(stream, body_size_ptr, sizeof(body_size));
-    // memcpy(stream + 256, buffer, body_size * sizeof(char));
 
     bytes = bytes + (send(new_socket, stream, body_size + 256, 0) - 256);
 
