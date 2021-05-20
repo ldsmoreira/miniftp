@@ -137,6 +137,7 @@ int main(int argc, char const *argv[])
     memcpy(stream + 256, buffer, body_size);
 
     bytes = bytes + (send(new_socket, stream, body_size + 256, 0) - 256);
+    sleep(1);
 
     fseek(f, bytes, SEEK_SET);
     printf("Bytes sent: %d\n", bytes);
