@@ -5,12 +5,17 @@
 #include <netinet/in.h>
 #include <string.h>
 #include <dirent.h>
+#include <errno.h>
+
+
 
 #define NORMAL_COLOR "\x1B[0m"
 #define GREEN "\x1B[32m"
 #define BLUE "\x1B[34m"
 
 #define PORT 9000
+
+extern int errno ;
 
 char *fileFinder(char fileToSearch[1024])
 {
@@ -61,10 +66,12 @@ int main(int argc, char const *argv[])
   char buffer2[1024] = {0};
 
   char *response;
-  int bytes = 0;
+  long int bytes = 0, bytes_sent = 0;
   unsigned short int body_size = 1024;
   char *stream;
   char header[256];
+
+  int errnum;
 
   if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
   {
@@ -136,11 +143,23 @@ int main(int argc, char const *argv[])
     memcpy(stream, header, 256);
     memcpy(stream + 256, buffer, body_size);
 
-    bytes = bytes + (send(new_socket, stream, body_size + 256, 0) - 256);
-    sleep(1);
+    bytes_sent = send(new_socket, stream, body_size + 256, 0);
+
+    if (bytes_sent == -1){
+
+      errnum = errno;
+      fprintf(stderr, "Value of errno: %d\n", errno);
+      perror("Error printed by perror");
+      fprintf(stderr, "The error is: %s\n", strerror(errnum));
+    }
+    printf("%ld\n", bytes_sent);
+    bytes_sent = bytes_sent - 256;
+
+    bytes = bytes + bytes_sent;
+    // sleep(0.1);
 
     fseek(f, bytes, SEEK_SET);
-    printf("Bytes sent: %d\n", bytes);
+    printf("Bytes sent: %ld\n", bytes);
     if ((filelen - bytes) < body_size)
     {
       body_size = filelen - bytes;

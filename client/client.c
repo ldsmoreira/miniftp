@@ -4,7 +4,11 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <string.h>
+#include <errno.h>
+
 #define PORT 9000
+
+extern int errno ;
 
 int main(int argc, char const *argv[])
 {
@@ -20,9 +24,12 @@ int main(int argc, char const *argv[])
   unsigned long int stream_size;
   FILE *f;
   size_t bytes = 0;
-
+  ssize_t bytes_read;
   char newLineChar = '\n';
   char *newLinePtr = &newLineChar;
+
+  int errnum;
+
   fgets(file, sizeof(file), stdin);
 
   if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
@@ -53,11 +60,21 @@ int main(int argc, char const *argv[])
   file[strcspn(file, newLinePtr)] = '\0';
   f = fopen(file, "wb+");
   printf("%s\n", file);
+  do{
+     bytes_read = read(sock, stream, 1024 + 256);
 
-  while (read(sock, stream, 1024 + 256) > 0)
-  {
+     if (bytes_read == -1){
 
-    printf("stream read: %s\n", stream);
+      errnum = errno;
+      fprintf(stderr, "Value of errno: %d\n", errno);
+      perror("Error printed by perror");
+      fprintf(stderr, "The error is: %s\n", strerror(errnum));
+    }
+
+    if(bytes_read < 1280){
+      bytes_read = bytes_read + read(sock, stream + bytes_read, 1280 - bytes_read);
+    }
+    // printf("stream read: %s\n", stream);
 
     header_ptr = &stream;
     stream_size = atol(*header_ptr);
@@ -67,7 +84,11 @@ int main(int argc, char const *argv[])
 
     printf("Stream size: %ld\n", stream_size);
     printf("Bytes received of stream: %ld\n", bytes);
-  }
+    printf("Bytes read: %ld\n", bytes_read);
+    bzero(stream, 1280);
+    // bytes_read = read(sock, stream, 1024 + 256);
+  }while (bytes_read > 0);
+
   fclose(f);
   close(sock);
 
