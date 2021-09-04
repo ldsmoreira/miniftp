@@ -6,31 +6,28 @@
 #include <string.h>
 #include <errno.h>
 
-#define PORT 9000
-
 extern int errno ;
 
-int main(int argc, char const *argv[])
+int client(char *file_name, char *host, int port)
 {
+  FILE *f;
 
-  int sock = 0, valread;
+  ssize_t bytes_read;
+
+  size_t bytes = 0;
+
   struct sockaddr_in serv_addr;
 
-  char(*header_ptr)[256];
-  char file[1024] = {0};
-  char buffer[1024] = {0};
-  char stream[1280] = {0};
-
+  int errnum, valread;
+  int sock = 0;
   unsigned long int stream_size;
-  FILE *f;
-  size_t bytes = 0;
-  ssize_t bytes_read;
+
+  char(*header_ptr)[256];
+  char buffer[1024] = {0};
+  char file_buffer[1024] = {0};
+  char stream[1280] = {0};
   char newLineChar = '\n';
   char *newLinePtr = &newLineChar;
-
-  int errnum;
-
-  fgets(file, sizeof(file), stdin);
 
   if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
   {
@@ -39,10 +36,10 @@ int main(int argc, char const *argv[])
   }
 
   serv_addr.sin_family = AF_INET;
-  serv_addr.sin_port = htons(PORT);
+  serv_addr.sin_port = htons(port);
 
   // Convert IPv4 and IPv6 addresses from text to binary form
-  if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0)
+  if (inet_pton(AF_INET, host, &serv_addr.sin_addr) <= 0)
   {
     printf("\nInvalid address/ Address not supported \n");
     return -1;
@@ -54,12 +51,14 @@ int main(int argc, char const *argv[])
     return -1;
   }
 
-  send(sock, file, 1024, 0);
+  // send(sock, file, 1024, 0);
+  printf("%s", strcpy(file_buffer, file_name));
+  send(sock, strcpy(file_buffer, file_name), sizeof(file_buffer), 0);
   printf("a %s", buffer);
 
-  file[strcspn(file, newLinePtr)] = '\0';
-  f = fopen(file, "wb+");
-  printf("%s\n", file);
+  file_buffer[strcspn(file_buffer, newLinePtr)] = '\0';
+  f = fopen(file_name, "wb+");
+  printf("%s\n", file_name);
   do{
      bytes_read = read(sock, stream, 1024 + 256);
 

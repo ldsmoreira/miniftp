@@ -1,59 +1,17 @@
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <sys/socket.h>
 #include <stdlib.h>
 #include <netinet/in.h>
 #include <string.h>
 #include <dirent.h>
 #include <errno.h>
+#include "ff.h"
 
+char *file_finder(char fileToSearch[1024], char *path);
 
-
-#define NORMAL_COLOR "\x1B[0m"
-#define GREEN "\x1B[32m"
-#define BLUE "\x1B[34m"
-
-#define PORT 9000
-
-extern int errno ;
-
-char *fileFinder(char fileToSearch[1024])
-{
-  struct dirent *de; // Ponteiro para a entrada do diretorio
-
-  char newLineChar = '\n';
-  char *newLinePtr = &newLineChar;
-
-  // newLinePtr = &newLineChar;
-
-  DIR *dr = opendir(".");
-
-  if (dr == NULL) // opendir retorna NULL se nao conseguir abrir o diretorio
-  {
-    printf("Nao foi possivel abrir o diretoriao!");
-    return 0;
-  }
-
-  while ((de = readdir(dr)) != NULL)
-  {
-
-    fileToSearch[strcspn(fileToSearch, newLinePtr)] = '\0';
-    printf("%s\n", BLUE, de->d_name);
-    if (strcmp(fileToSearch, de->d_name) == 0)
-    {
-      printf("%s\n", de->d_name);
-      printf("Arquivo encontrado\n");
-      // return de->d_name;
-      return fileToSearch;
-    }
-    // printf("Arquivo nao encontrado!");
-  }
-
-  closedir(dr);
-  return "Arquivo nao encontrado";
-}
-
-int main(int argc, char const *argv[])
+int server(char *path, int port)
 {
   FILE *f;
   long int filelen;
@@ -88,7 +46,7 @@ int main(int argc, char const *argv[])
   }
   address.sin_family = AF_INET;
   address.sin_addr.s_addr = INADDR_ANY;
-  address.sin_port = htons(PORT);
+  address.sin_port = htons(port);
 
   // Forcefully attaching socket to the port 8080
   if (bind(server_fd, (struct sockaddr *)&address,
@@ -111,9 +69,9 @@ int main(int argc, char const *argv[])
 
   valread = read(new_socket, buffer2, 1024);
 
-  response = fileFinder(buffer2);
+  response = file_finder(buffer2, path);
 
-  f = fopen(response, "rb");
+  f = fopen(strcat(strcat(path,"/"),response), "rb");
 
   a = fseek(f, 0, SEEK_END);
 
@@ -125,9 +83,6 @@ int main(int argc, char const *argv[])
 
   // buffer = (char *)malloc(filelen * sizeof(char));
 
-  printf("%s\n", buffer);
-  printf("%s\n", buffer2);
-  printf("oiiiiiii");
   if (body_size > filelen)
   {
     body_size = filelen;
@@ -135,7 +90,7 @@ int main(int argc, char const *argv[])
   while (bytes < filelen)
   {
     stream = malloc((body_size + 256) * sizeof(char)); // array to hold the result
-    bzero(stream, 256 + 1024);
+    bzero(stream, 256 + body_size);
 
     fread(buffer, body_size, 1, f);
 
@@ -152,11 +107,9 @@ int main(int argc, char const *argv[])
       perror("Error printed by perror");
       fprintf(stderr, "The error is: %s\n", strerror(errnum));
     }
-    printf("%ld\n", bytes_sent);
     bytes_sent = bytes_sent - 256;
 
     bytes = bytes + bytes_sent;
-    // sleep(0.1);
 
     fseek(f, bytes, SEEK_SET);
     printf("Bytes sent: %ld\n", bytes);
@@ -167,6 +120,5 @@ int main(int argc, char const *argv[])
   }
   fclose(f);
   close(server_fd);
-  printf("Hello message sent\n");
   return 0;
 }
