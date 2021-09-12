@@ -18,19 +18,18 @@ int server(char *path, int port);
 int main (int argc, char **argv)
 {
   char *host, *path, *file;
-  int sflag = 0;
-  int cflag = 0;
-  int port;
   char *fvalue = NULL;
   char *pvalue = NULL;
   char *rvalue = NULL;
   char *dvalue = NULL;
-  int index, c;
+  int index, option, port;
+  int sflag = 0;
+  int cflag = 0;
 
   opterr = 0;
 
-  while ((c = getopt(argc, argv, "scf:p:r:d:")) != -1)
-    switch (c)
+  while ((option = getopt(argc, argv, "scf:p:r:d:")) != -1)
+    switch (option)
     {
       case 's':
         sflag = 1;
@@ -61,8 +60,8 @@ int main (int argc, char **argv)
         abort();
     }
 
-  for (index = optind; index < argc; index++)
-    printf ("Non-option argument %s\n", argv[index]);
+  // for (index = optind; index < argc; index++)
+  //   printf ("Non-option argument %s\n", argv[index]);
 
   if(cflag){
     file = fvalue;
