@@ -9,11 +9,14 @@
 #include <errno.h>
 #include "ff.h"
 
+#define HEADER_SIZE 256
+#define BODY_SIZE 1024
+
 char *file_finder(char fileToSearch[1024], char *path);
 
 int server(char *path, int port)
 {
-  FILE *f;
+  FILE *filestream;
 
   /* Structure describing an Internet socket address.  */
   struct sockaddr_in address;
@@ -21,16 +24,16 @@ int server(char *path, int port)
   long int filelen;
 
   int addrlen = sizeof(address);
-  int server_fd, connected_socket_fd, valread, a;
+  int server_fd, connected_socket_fd, valread, finalposition;
   int opt = 1;
   char buffer[1024] = {0};
   char filename_buffer[1024] = {0};
 
   char *response;
   long int bytes = 0, bytes_sent = 0;
-  unsigned short int body_size = 1024;
+  unsigned short int body_size = BODY_SIZE;
   char *stream;
-  char header[256];
+  char header[HEADER_SIZE];
 
   int errnum;
 
@@ -113,20 +116,38 @@ if (listen(server_fd, 3) < 0)
 
   /* Read 1024 bytes into filename_buffer from connected_socket_fd */
   valread = read(connected_socket_fd, filename_buffer, 1024);
-
+  
+  /*Find the file in the directory, returning the filename if file
+    is inside directory or return NULL if the file isn't in the
+    directory.*/
   response = file_finder(filename_buffer, path);
 
-  f = fopen(strcat(strcat(path,"/"),response), "rb");
+  if(response == NULL){
+    return -1;
+  }
 
-  a = fseek(f, 0, SEEK_END);
+  /*Open a file and create a new stream for it, the path is composed by
+  the path passed in the command line and the file name*/
+  filestream = fopen(strcat(strcat(path,"/"),response), "rb");
 
-  // The C library function long int ftell(FILE *stream) returns the current file position of the given stream.
-  filelen = ftell(f);
+  /*The fseek() function sets the file position indicator for the
+    stream pointed to by stream.  The new position, measured in
+    bytes, is obtained by adding offset bytes to the position
+    specified by whence.  If whence is set to SEEK_SET, SEEK_CUR, or
+    SEEK_END, the offset is relative to the start of the file, the
+    current position indicator, or end-of-file, respectively.  A
+    successful call to the fseek() function clears the end-of-file
+    indicator for the stream and undoes any effects of the ungetc(3)
+    function on the same stream.*/
+  finalposition = fseek(filestream, 0, SEEK_END);
 
-  // The C library function void rewind(FILE *stream) sets the file position to the beginning of the file of the given stream.
-  rewind(f);
+  /*The ftell() function obtains the current value of the file
+    position indicator for the stream pointed to by stream.*/
+  filelen = ftell(filestream);
 
-  // buffer = (char *)malloc(filelen * sizeof(char));
+  /*The rewind() function sets the file position indicator for the
+    stream pointed to by stream to the beginning of the file.*/
+  rewind(filestream);
 
   if (body_size > filelen)
   {
@@ -134,16 +155,17 @@ if (listen(server_fd, 3) < 0)
   }
   while (bytes < filelen)
   {
-    stream = malloc((body_size + 256) * sizeof(char)); // array to hold the result
-    bzero(stream, 256 + body_size);
+    stream = malloc((body_size + HEADER_SIZE) * sizeof(char)); // prepare stream to receive the transfer protocol
+    bzero(stream, HEADER_SIZE + body_size);                    // turn every byte in stream as 0x00
 
-    fread(buffer, body_size, 1, f);
+    fread(buffer, body_size, 1, filestream);                   // read body_size bytes from filestream into buffer
+                                                               // byte by byte
+    sprintf(header, "%d", body_size);                          // write body_size at header stream as an array of char
+    memcpy(stream, header, HEADER_SIZE);                       // copy header to the beggining of the protocol stream
+    memcpy(stream + HEADER_SIZE, buffer, body_size);           // copy buffer with the body of the message after header
 
-    sprintf(header, "%d", body_size);
-    memcpy(stream, header, 256);
-    memcpy(stream + 256, buffer, body_size);
-
-    bytes_sent = send(connected_socket_fd, stream, body_size + 256, 0);
+    /*The system calls send() are used to transmit a message to another socket.*/
+    bytes_sent = send(connected_socket_fd, stream, body_size + HEADER_SIZE, 0);
 
     if (bytes_sent == -1){
 
@@ -152,18 +174,27 @@ if (listen(server_fd, 3) < 0)
       perror("Error printed by perror");
       fprintf(stderr, "The error is: %s\n", strerror(errnum));
     }
-    bytes_sent = bytes_sent - 256;
 
+    bytes_sent = bytes_sent - HEADER_SIZE;
+
+    /*Marker of how many bytes was sent*/
     bytes = bytes + bytes_sent;
 
-    fseek(f, bytes, SEEK_SET);
-    printf("Bytes sent: %ld\n", bytes);
+    /*Set the value of bytes sent as offset in filestream*/
+    fseek(filestream, bytes, SEEK_SET);
+
+    /*Dynamic set body_size*/
     if ((filelen - bytes) < body_size)
     {
       body_size = filelen - bytes;
     }
   }
-  fclose(f);
+  /*Close file stream*/
+  fclose(filestream);
+
+  /*Close socket*/
   close(server_fd);
+
+  printf("Retornarei!");
   return 0;
 }

@@ -60,8 +60,8 @@ int main (int argc, char **argv)
         abort();
     }
 
-  // for (index = optind; index < argc; index++)
-  //   printf ("Non-option argument %s\n", argv[index]);
+  for (index = optind; index < argc; index++)
+    printf ("Non-option argument %s\n", argv[index]);
 
   if(cflag){
     file = fvalue;
@@ -89,9 +89,7 @@ int main (int argc, char **argv)
     }else{
       port = DEFAULT_PORT;
     }
-    printf("Starting server at %s", path);
-    server(path, port);
+    printf("Starting server at %s\n", path);
+    server(path, port);    
   }
-
-  return 0;
 }

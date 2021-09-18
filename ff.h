@@ -7,35 +7,56 @@
 
 char *file_finder(char fileToSearch[1024], char *path)
 {
-  struct dirent *de; // Ponteiro para a entrada do diretorio
+  printf("Arquivo que entra em filefinder: %x", fileToSearch);
+  /*DIR is a type representing a directory stream.*/
+  DIR *dirstream = opendir(path);
+
+  /*The dirent structure describes an entry in a directory*/
+  struct dirent *direntry;
 
   char newLineChar = '\n';
   char *newLinePtr = &newLineChar;
 
-  // newLinePtr = &newLineChar;
+  /*The opendir() function opens a directory stream corresponding to
+    the directory name, and returns a pointer to the directory
+    stream.  The stream is positioned at the first entry in the
+    directory.*/
 
-  DIR *dr = opendir(path);
-
-  if (dr == NULL) // opendir retorna NULL se nao conseguir abrir o diretorio
+  if (dirstream == NULL) // opendir return NULL if can't open the directory path
   {
-    printf("Nao foi possivel abrir o diretoriao!");
+    printf("Can't open the directory %s", path);
     return 0;
   }
 
-  while ((de = readdir(dr)) != NULL)
-  {
+  /*The readdir() function returns a pointer to a dirent structure
+    representing the next directory entry in the directory stream
+    pointed to by dirstream.  It returns NULL on reaching the end of the
+    directory stream or if an error occurred.
+    In the glibc implementation, the dirent structure is defined as
+    follows:
 
-    fileToSearch[strcspn(fileToSearch, newLinePtr)] = '\0';
-    if (strcmp(fileToSearch, de->d_name) == 0)
+    struct dirent {
+        ino_t          d_ino;       //Inode number
+        off_t          d_off;       //Not an offset; see below
+        unsigned short d_reclen;    //Length of this record
+        unsigned char  d_type;      //Type of file; not supported by all filesystem types
+        char           d_name[256]; //Null-terminated filename
+        };*/
+  while ((direntry = readdir(dirstream)) != NULL)
+  { 
+    /*Using strcspn to avoid strings \n terminated*/
+    // fileToSearch[strcspn(fileToSearch, newLinePtr)] = '\0';
+
+    /*Searching for a file that matches fileToSea*/
+    if (strcmp(fileToSearch, direntry->d_name) == 0)
     {
-      printf("%s\n", de->d_name);
-      printf("Arquivo encontrado\n");
-      // return de->d_name;
+      printf("File found\n");
       return fileToSearch;
     }
-    // printf("Arquivo nao encontrado!");
   }
 
-  closedir(dr);
-  return "Arquivo nao encontrado";
+  /*Close the directory stream dirstream.
+    Return 0 if successful, -1 if not.*/
+  closedir(dirstream);
+  return NULL;
 }
