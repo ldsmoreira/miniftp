@@ -3,8 +3,8 @@
 #include <unistd.h>
 #include <errno.h>
 #include <stdio.h>
-#include "server.h"
-#include "client.h"
+#include "net/server.h"
+#include "net/client.h"
 
 #define DEFAULT_HOST "127.0.0.1"
 #define DEFAULT_PATH "."
@@ -90,6 +90,6 @@ int main (int argc, char **argv)
       port = DEFAULT_PORT;
     }
     printf("Starting server at %s\n", path);
-    server(path, port);    
+    server(path, port);
   }
 }

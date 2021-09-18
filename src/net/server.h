@@ -7,19 +7,19 @@
 #include <string.h>
 #include <dirent.h>
 #include <errno.h>
-#include "ff.h"
+#include "../utils/ff.h"
 
 #define HEADER_SIZE 256
 #define BODY_SIZE 1024
 
-char *file_finder(char fileToSearch[1024], char *path);
+char *filefinder(char fileToSearch[1024], char *dirpath);
 
 int server(char *path, int port)
 {
   FILE *filestream;
 
   /* Structure describing an Internet socket address.  */
-  struct sockaddr_in address;
+  struct sockaddr_in address; 
 
   long int filelen;
 
@@ -27,15 +27,18 @@ int server(char *path, int port)
   int server_fd, connected_socket_fd, valread, finalposition;
   int opt = 1;
   char buffer[1024] = {0};
-  char filename_buffer[1024] = {0};
+  char fnbuffer[1024] = {0};
+  char *dirname = malloc(1024);
 
-  char *response;
-  long int bytes = 0, bytes_sent = 0;
+  char *response, *dirname_buffer;
+  long int bytes = 0, bytessent = 0;
   unsigned short int body_size = BODY_SIZE;
   char *stream;
   char header[HEADER_SIZE];
 
   int errnum;
+
+  strcpy(dirname, path);
 
   /* Create a new socket of type TCP in an IPV4 domain.
      This socket is represented as a file descriptor  */
@@ -107,20 +110,22 @@ if (listen(server_fd, 3) < 0)
      socket(2), bound to a local address with bind(2), and is
      listening for connections after a listen(2). See more details
      in accept(2) man page*/
-  if ((connected_socket_fd = accept(server_fd, (struct sockaddr *)&address,
-                           (socklen_t *)&addrlen)) < 0)
-  {
-    perror("accept");
-    exit(EXIT_FAILURE);
-  }
+  while ((connected_socket_fd = accept(server_fd, (struct sockaddr *)&address,
+                           (socklen_t *)&addrlen)) > 0){
+  // {
+  //   perror("accept");
+  //   exit(EXIT_FAILURE);
+  // }
 
-  /* Read 1024 bytes into filename_buffer from connected_socket_fd */
-  valread = read(connected_socket_fd, filename_buffer, 1024);
-  
+  /* Read 1024 bytes into fnbuffer from connected_socket_fd */
+  valread = read(connected_socket_fd, fnbuffer, 1024);
+
+  strcpy(path, dirname);
+
   /*Find the file in the directory, returning the filename if file
     is inside directory or return NULL if the file isn't in the
     directory.*/
-  response = file_finder(filename_buffer, path);
+  response = filefinder(fnbuffer, path);
 
   if(response == NULL){
     return -1;
@@ -165,20 +170,18 @@ if (listen(server_fd, 3) < 0)
     memcpy(stream + HEADER_SIZE, buffer, body_size);           // copy buffer with the body of the message after header
 
     /*The system calls send() are used to transmit a message to another socket.*/
-    bytes_sent = send(connected_socket_fd, stream, body_size + HEADER_SIZE, 0);
+    bytessent = send(connected_socket_fd, stream, body_size + HEADER_SIZE, 0);
 
-    if (bytes_sent == -1){
+    if (bytessent == -1){
 
       errnum = errno;
-      fprintf(stderr, "Value of errno: %d\n", errno);
-      perror("Error printed by perror");
-      fprintf(stderr, "The error is: %s\n", strerror(errnum));
+      fprintf(stderr, "An error occurred: %s\n", strerror(errnum));
     }
 
-    bytes_sent = bytes_sent - HEADER_SIZE;
+    bytessent = bytessent - HEADER_SIZE;
 
     /*Marker of how many bytes was sent*/
-    bytes = bytes + bytes_sent;
+    bytes = bytes + bytessent;
 
     /*Set the value of bytes sent as offset in filestream*/
     fseek(filestream, bytes, SEEK_SET);
@@ -192,9 +195,15 @@ if (listen(server_fd, 3) < 0)
   /*Close file stream*/
   fclose(filestream);
 
-  /*Close socket*/
-  close(server_fd);
+  /*Close socket connected_socket_fd*/
+  close(connected_socket_fd);
 
-  printf("Retornarei!");
+  printf("File %s uploaded with success!", fnbuffer);
+  fflush(stdout);
+  bzero(fnbuffer, 1024);
+  bytes = 0;
+  bytessent = 0;
+  body_size = BODY_SIZE;
+  }
   return 0;
 }

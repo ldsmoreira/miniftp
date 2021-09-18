@@ -1,15 +1,10 @@
 #include <dirent.h>
 
-#define NORMAL_COLOR "\x1B[0m"
-#define GREEN "\x1B[32m"
-#define BLUE "\x1B[34m"
 
-
-char *file_finder(char fileToSearch[1024], char *path)
+char *filefinder(char fileToSearch[1024], char *dirpath)
 {
-  printf("Arquivo que entra em filefinder: %x", fileToSearch);
   /*DIR is a type representing a directory stream.*/
-  DIR *dirstream = opendir(path);
+  DIR *dirstream = opendir(dirpath);
 
   /*The dirent structure describes an entry in a directory*/
   struct dirent *direntry;
@@ -24,7 +19,7 @@ char *file_finder(char fileToSearch[1024], char *path)
 
   if (dirstream == NULL) // opendir return NULL if can't open the directory path
   {
-    printf("Can't open the directory %s", path);
+    printf("Can't open the directory %s\n", dirpath);
     return 0;
   }
 
@@ -50,7 +45,6 @@ char *file_finder(char fileToSearch[1024], char *path)
     /*Searching for a file that matches fileToSea*/
     if (strcmp(fileToSearch, direntry->d_name) == 0)
     {
-      printf("File found\n");
       return fileToSearch;
     }
   }
