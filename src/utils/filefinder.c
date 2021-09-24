@@ -1,5 +1,5 @@
 #include <dirent.h>
-
+#include <stdio.h>
 
 char *filefinder(char fileToSearch[1024], char *dirpath)
 {
