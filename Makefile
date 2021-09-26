@@ -17,5 +17,17 @@ filefinder.o:
 	gcc -c src/utils/filefinder.c -o filefinder.o
 
 clean:
-	rm *.o miniftp
-	rm -r test
+	rm -f *.o miniftp
+	rm -f -r test
+	rm -f src/utils/test_utils/obj/*
+	rm -f src/utils/test_utils/bin/*
+
+
+testqueue: test_queue.o
+	gcc src/utils/test_utils/obj/queue.o src/utils/test_utils/obj/test_queue.o -o src/utils/test_utils/bin/test_queue
+
+test_queue.o: queue.o
+	gcc -c src/utils/test_utils/test_queue.c -o src/utils/test_utils/obj/test_queue.o
+
+queue.o:
+	gcc -c src/utils/queue.c -o src/utils/test_utils/obj/queue.o
