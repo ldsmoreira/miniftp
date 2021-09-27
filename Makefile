@@ -1,8 +1,11 @@
+install: all
+	sudo mv miniftp /bin
+
 all: miniftp
 	mkdir test
 
 miniftp: client.o server.o miniftp.o
-	gcc filefinder.o client.o server.o miniftp.o -o miniftp
+	gcc conhandler.o filefinder.o client.o server.o miniftp.o -o miniftp
 
 miniftp.o: server.o client.o
 	gcc -c src/miniftp.c -o miniftp.o
@@ -10,11 +13,14 @@ miniftp.o: server.o client.o
 client.o: filefinder.o
 	gcc -c src/net/client.c -o client.o
 
-server.o: filefinder.o
+server.o: filefinder.o conhandler.o
 	gcc -c src/net/server.c -o server.o
 
 filefinder.o:
 	gcc -c src/utils/filefinder.c -o filefinder.o
+
+conhandler.o: filefinder.o
+	gcc -c src/net/conhandler.c -o conhandler.o
 
 clean:
 	rm -f *.o miniftp

@@ -1,43 +1,12 @@
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <netinet/in.h>
-#include <string.h>
-#include <dirent.h>
-#include <errno.h>
+#include "conhandler.h"
 #include "../utils/filefinder.h"
 
-#define HEADER_SIZE 256
-#define BODY_SIZE 1024
 
 int server(char *path, int port)
 {
-  FILE *filestream;
-
-  /* Structure describing an Internet socket address.  */
-  struct sockaddr_in address; 
-
-  long int filelen;
-
-  int addrlen = sizeof(address);
-  int server_fd, connected_socket_fd, valread, finalposition;
-  int opt = 1;
-  char buffer[1024] = {0};
-  char fnbuffer[1024] = {0};
-  char *dirname = malloc(1024);
-
-  char *response, *dirname_buffer;
-  long int bytes = 0, bytessent = 0;
-  unsigned short int body_size = BODY_SIZE;
-  char *stream;
-  char header[HEADER_SIZE];
-
   int errnum;
 
-  strcpy(dirname, path);
-
+  int server_fd;
   /* Create a new socket of type TCP in an IPV4 domain.
      This socket is represented as a file descriptor  */
   if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
@@ -46,16 +15,20 @@ int server(char *path, int port)
     exit(EXIT_FAILURE);
   }
 
-    /* Set the reuse of ADDRESSES and PORTS, which means
-    that even if the process is restarted, the kernell will
-    give to it the same previous address and port if the
-    socket is in the TIME_WAIT state.  */
+  int opt = 1;
+  /* Set the reuse of ADDRESSES and PORTS, which means
+  that even if the process is restarted, the kernell will
+  give to it the same previous address and port if the
+  socket is in the TIME_WAIT state.  */
   if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT,
                  &opt, sizeof(opt)))
   {
     perror("Can't set the options");
     exit(EXIT_FAILURE);
   }
+
+  /* Structure describing an Internet socket address.  */
+  struct sockaddr_in address;
 
   /*Specifing the type of address to IPV4*/
   address.sin_family = AF_INET;
@@ -99,109 +72,23 @@ if (listen(server_fd, 3) < 0)
   /* The accept() system call is used with connection-based socket
      types (SOCK_STREAM, SOCK_SEQPACKET).  It extracts the first
      connection request on the queue of pending connections for the
+     socket(2), bound to a local address with bind(2), and is
      listening socket, sockfd, creates a new connected socket, and
      returns a new file descriptor referring to that socket.  The
      newly created socket is not in the listening state.  The original
      socket sockfd is unaffected by this call.
 
      The argument sockfd is a socket that has been created with
-     socket(2), bound to a local address with bind(2), and is
      listening for connections after a listen(2). See more details
      in accept(2) man page*/
+  int connected_socket_fd;
+  int addrlen = sizeof(address);
   while ((connected_socket_fd = accept(server_fd, (struct sockaddr *)&address,
                            (socklen_t *)&addrlen)) > 0){
-  // {
-  //   perror("accept");
-  //   exit(EXIT_FAILURE);
-  // }
-
-  /* Read 1024 bytes into fnbuffer from connected_socket_fd */
-  valread = read(connected_socket_fd, fnbuffer, 1024);
-
-  strcpy(path, dirname);
-
-  /*Find the file in the directory, returning the filename if file
-    is inside directory or return NULL if the file isn't in the
-    directory.*/
-  response = filefinder(fnbuffer, path);
-
-  if(response == NULL){
-    return -1;
-  }
-
-  /*Open a file and create a new stream for it, the path is composed by
-  the path passed in the command line and the file name*/
-  filestream = fopen(strcat(strcat(path,"/"),response), "rb");
-
-  /*The fseek() function sets the file position indicator for the
-    stream pointed to by stream.  The new position, measured in
-    bytes, is obtained by adding offset bytes to the position
-    specified by whence.  If whence is set to SEEK_SET, SEEK_CUR, or
-    SEEK_END, the offset is relative to the start of the file, the
-    current position indicator, or end-of-file, respectively.  A
-    successful call to the fseek() function clears the end-of-file
-    indicator for the stream and undoes any effects of the ungetc(3)
-    function on the same stream.*/
-  finalposition = fseek(filestream, 0, SEEK_END);
-
-  /*The ftell() function obtains the current value of the file
-    position indicator for the stream pointed to by stream.*/
-  filelen = ftell(filestream);
-
-  /*The rewind() function sets the file position indicator for the
-    stream pointed to by stream to the beginning of the file.*/
-  rewind(filestream);
-
-  if (body_size > filelen)
-  {
-    body_size = filelen;
-  }
-  while (bytes < filelen)
-  {
-    stream = malloc((body_size + HEADER_SIZE) * sizeof(char)); // prepare stream to receive the transfer protocol
-    bzero(stream, HEADER_SIZE + body_size);                    // turn every byte in stream as 0x00
-
-    fread(buffer, body_size, 1, filestream);                   // read body_size bytes from filestream into buffer
-                                                               // byte by byte
-    sprintf(header, "%d", body_size);                          // write body_size at header stream as an array of char
-    memcpy(stream, header, HEADER_SIZE);                       // copy header to the beggining of the protocol stream
-    memcpy(stream + HEADER_SIZE, buffer, body_size);           // copy buffer with the body of the message after header
-
-    /*The system calls send() are used to transmit a message to another socket.*/
-    bytessent = send(connected_socket_fd, stream, body_size + HEADER_SIZE, 0);
-
-    if (bytessent == -1){
-
-      errnum = errno;
-      fprintf(stderr, "An error occurred: %s\n", strerror(errnum));
-    }
-
-    bytessent = bytessent - HEADER_SIZE;
-
-    /*Marker of how many bytes was sent*/
-    bytes = bytes + bytessent;
-
-    /*Set the value of bytes sent as offset in filestream*/
-    fseek(filestream, bytes, SEEK_SET);
-
-    /*Dynamic set body_size*/
-    if ((filelen - bytes) < body_size)
-    {
-      body_size = filelen - bytes;
-    }
-  }
-  /*Close file stream*/
-  fclose(filestream);
-
-  /*Close socket connected_socket_fd*/
-  close(connected_socket_fd);
-
-  printf("File %s uploaded with success!\n", fnbuffer);
-  fflush(stdout);
-  bzero(fnbuffer, 1024);
-  bytes = 0;
-  bytessent = 0;
-  body_size = BODY_SIZE;
+    
+    int status;
+    status = conhandler(connected_socket_fd, path);
+  
   }
   return 0;
 }

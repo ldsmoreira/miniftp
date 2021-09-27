@@ -11,28 +11,9 @@
 
 extern int errno ;
 
-int client(char *file_name, char *host, int port)
+int client(char *filename, char *host, int port)
 {
-  FILE *filestream;
-
-  ssize_t bytesread;
-
-  size_t bytes = 0;
-
-  /* Structure describing an Internet socket address.  */
-  struct sockaddr_in address;
-
-  int errnum, valread;
   int client_fd;
-  unsigned long int stream_size;
-
-  /*Pointer to an array of HEADER_SIZE characters*/
-  char(*header_ptr)[HEADER_SIZE];
-
-  char buffer[BODY_SIZE] = {0};
-  char file_buffer[BODY_SIZE] = {0};
-  char stream[BODY_SIZE + HEADER_SIZE] = {0};
-
   /* Create a new socket of type TCP in an IPV4 domain.
      This socket is represented as a file descriptor  */
   if ((client_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
@@ -41,6 +22,8 @@ int client(char *file_name, char *host, int port)
     return -1;
   }
 
+  /* Structure describing an Internet socket address.  */
+  struct sockaddr_in address;
   /*Specifing the type of address to IPV4*/
   address.sin_family = AF_INET;
 
@@ -69,13 +52,22 @@ int client(char *file_name, char *host, int port)
   }
 
   // send(sock, file, BODY_SIZE, 0);
-  // printf("%s", strcpy(file_buffer, file_name));
+  // printf("%s", strcpy(filebuffer, filename));
 
   /*Send over the connection the name of the file to be downloaded*/
-  send(client_fd, strcpy(file_buffer, file_name), sizeof(file_buffer), 0);
+  char filebuffer[BODY_SIZE] = {0};
+  send(client_fd, strcpy(filebuffer, filename), sizeof(filebuffer), 0);
 
-  filestream = fopen(file_name, "wb+");
+  FILE *filestream;
+  filestream = fopen(filename, "wb+");
 
+
+  /*Pointer to an array of HEADER_SIZE characters*/
+  char(*header_ptr)[HEADER_SIZE];
+  char stream[BODY_SIZE + HEADER_SIZE] = {0};
+  unsigned long int stream_size;
+  size_t bytes = 0;
+  ssize_t bytesread;
   do{
 
    /*Read NBYTES into stream from client_fd. Return the
@@ -84,10 +76,8 @@ int client(char *file_name, char *host, int port)
 
      if (bytesread == -1){
 
-      errnum = errno;
       fprintf(stderr, "Value of errno: %d\n", errno);
-      perror("Error printed by perror");
-      fprintf(stderr, "The error is: %s\n", strerror(errnum));
+      perror("Error: ");
     }
 
     if(bytesread < (HEADER_SIZE + BODY_SIZE)){
@@ -113,7 +103,7 @@ int client(char *file_name, char *host, int port)
   }while (bytesread > 0);
 
   printf("Bytes received: %ld\n", bytes);
-  printf("File %s downloaded\n", file_name);
+  printf("File %s downloaded\n", filename);
   fflush(stdout);
   fclose(filestream);
   close(client_fd);
