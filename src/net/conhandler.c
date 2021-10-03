@@ -6,8 +6,7 @@ void * conhandler(void *args)
 {
   char *path_ch = ((handargs *)args)->path_ch;
   int socket_con_accepted = ((handargs *)args)->socket_con_accepted;
-  
-  args = NULL;
+
   free(args);
   int valread;
   char fnbuffer[1024] = {0};

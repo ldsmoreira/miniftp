@@ -91,9 +91,6 @@ if (listen(server_fd, 3) < 0)
 
     handargs *conargs = (handargs *)malloc(sizeof(handargs));
 
-    handargs thread_args;
-
-    conargs = &thread_args;
     conargs->socket_con_accepted = connected_socket_fd;
     conargs->path_ch = path;
 
