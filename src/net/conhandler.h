@@ -12,4 +12,11 @@
 #define HEADER_SIZE 256
 #define BODY_SIZE 1024
 
-int conhandler(int socket_con_accepted, char *path_ch);
+typedef struct handargs
+{
+  int socket_con_accepted;
+  char *path_ch;
+}handargs;
+
+
+void * conhandler(void *args);

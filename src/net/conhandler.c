@@ -1,7 +1,14 @@
 #include "conhandler.h"
+#include <unistd.h>
 
-int conhandler(int socket_con_accepted, char *path_ch)
+// int conhandler(int socket_con_accepted, char *path_ch)
+void * conhandler(void *args)
 {
+  char *path_ch = ((handargs *)args)->path_ch;
+  int socket_con_accepted = ((handargs *)args)->socket_con_accepted;
+  
+  args = NULL;
+  free(args);
   int valread;
   char fnbuffer[1024] = {0};
   /* Read 1024 bytes into fnbuffer from socket_con_accepted */
@@ -17,7 +24,7 @@ int conhandler(int socket_con_accepted, char *path_ch)
   response = filefinder(fnbuffer, dirname);
 
   if(response == NULL){
-    return -1;
+    return NULL;
   }
 
   /*Open a file and create a new stream for it, the path is composed by
@@ -101,6 +108,6 @@ int conhandler(int socket_con_accepted, char *path_ch)
   bytes = 0;
   bytessent = 0;
   body_size = BODY_SIZE;
-
-  return 1;
+  
+  return NULL;
 }

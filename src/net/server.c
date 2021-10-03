@@ -1,5 +1,6 @@
 #include "conhandler.h"
 #include "../utils/filefinder.h"
+#include <pthread.h>
 
 
 int server(char *path, int port)
@@ -86,9 +87,18 @@ if (listen(server_fd, 3) < 0)
   while ((connected_socket_fd = accept(server_fd, (struct sockaddr *)&address,
                            (socklen_t *)&addrlen)) > 0){
     
-    int status;
-    status = conhandler(connected_socket_fd, path);
-  
+    pthread_t thread;
+
+    handargs *conargs = (handargs *)malloc(sizeof(handargs));
+
+    handargs thread_args;
+
+    conargs = &thread_args;
+    conargs->socket_con_accepted = connected_socket_fd;
+    conargs->path_ch = path;
+
+    pthread_create(&thread, NULL, conhandler, conargs);
+
   }
   return 0;
 }

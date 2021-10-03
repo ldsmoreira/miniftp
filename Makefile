@@ -5,7 +5,7 @@ all: miniftp
 	mkdir test
 
 miniftp: client.o server.o miniftp.o
-	gcc conhandler.o filefinder.o client.o server.o miniftp.o -o miniftp
+	gcc -pthread conhandler.o filefinder.o client.o server.o miniftp.o -o miniftp
 
 miniftp.o: server.o client.o
 	gcc -c src/miniftp.c -o miniftp.o
